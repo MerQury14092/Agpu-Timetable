@@ -351,19 +351,16 @@ public class GetTimetableService {
     }
 
     private Integer[] res(Integer[] col, Integer[] pairs){
-        ArrayList<Integer> tmp_list = new ArrayList<>();
-        for (int i = 0; i < col.length; i++) {
-            if(col[i] == 1)
-                tmp_list.add(i);
-            else {
-                tmp_list.add(i);
-                tmp_list.add(i);
+        ArrayList<Integer> res = new ArrayList<>(pairs.length);
+        int currentIndex = 0;
+        int remainder = col[currentIndex];
+        for (int i = 0; i < pairs.length; i++) {
+            res.add(currentIndex);
+            remainder -= pairs[i];
+            if(remainder <= 0 && ++currentIndex < col.length) {
+                remainder = col[currentIndex];
             }
         }
-        for (int i = 0; i < pairs.length; i++) {
-            if(pairs[i] == 2)
-                tmp_list.remove(i+1);
-        }
-        return tmp_list.toArray(new Integer[0]);
+        return res.toArray(new Integer[0]);
     }
 }

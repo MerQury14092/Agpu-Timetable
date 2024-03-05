@@ -23,7 +23,7 @@ import static com.merqury.agpu.general.AgpuConstants.hostSite;
 @Log4j2
 public class GetNewsService {
     private static final String faculty_header = "faculties-institutes/";
-    private static final String urlForEverything = hostSite+"/struktura-vuza/%s/news/news.php?PAGEN_1=%d";
+    private static final String urlForEverything = hostSite+"/struktura-vuza/%s/news/news.php?4PAGEN_1=%d";
     private static final String urlForArticle = hostSite+"/struktura-vuza/%s/news/news.php?ELEMENT_ID=%d";
     private final static String urlAgpuNews = "http://agpu.net/news.php";
     private final static List<String> nonStandardCategories;
@@ -140,7 +140,7 @@ public class GetNewsService {
         res.setDescription(description.toString());
 
         for(Element img: el.getElementsByTag("img"))
-            res.getImages().add("http://test.agpu.net"+img.attr("src"));
+            res.getImages().add("http://www.agpu.net"+img.attr("src"));
         return res;
     }
 
