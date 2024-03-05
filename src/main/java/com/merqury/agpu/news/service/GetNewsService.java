@@ -8,6 +8,7 @@ import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.parser.Tag;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 
@@ -23,8 +24,8 @@ import static com.merqury.agpu.general.AgpuConstants.hostSite;
 @Log4j2
 public class GetNewsService {
     private static final String faculty_header = "faculties-institutes/";
-    private static final String urlForEverything = hostSite+"/struktura-vuza/%s/news/news.php?4PAGEN_1=%d";
-    private static final String urlForArticle = hostSite+"/struktura-vuza/%s/news/news.php?ELEMENT_ID=%d";
+    private static final String urlForEverything = hostSite + "/struktura-vuza/%s/news/news.php?4PAGEN_1=%d";
+    private static final String urlForArticle = hostSite + "/struktura-vuza/%s/news/news.php?ELEMENT_ID=%d";
     private final static String urlAgpuNews = "http://agpu.net/news.php";
     private final static List<String> nonStandardCategories;
 
@@ -39,8 +40,8 @@ public class GetNewsService {
         List<PreviewArticle> res = new ArrayList<>();
         Document doc;
         try {
-            doc = Jsoup.parse(new URL(String.format(urlForEverything, nonStandardCategories.contains(faculty)?faculty:faculty_header+faculty, page)), 5000);
-        } catch (HttpStatusException e){
+            doc = Jsoup.parse(new URL(String.format(urlForEverything, nonStandardCategories.contains(faculty) ? faculty : faculty_header + faculty, page)), 5000);
+        } catch (HttpStatusException e) {
             NewsResponse err = new NewsResponse();
             err.setCurrentPage(0);
             err.setCountPages(0);
@@ -56,15 +57,14 @@ public class GetNewsService {
         return getNewsResponse(page, doc, res);
     }
 
-    public FullArticle getArticleById(String faculty, int id) throws IOException{
+    public FullArticle getArticleById(String faculty, int id) throws IOException {
         Document doc;
-        if(faculty.equals("agpu")) {
+        if (faculty.equals("agpu")) {
             doc = Jsoup.parse(new URL(urlAgpuNews + "?ELEMENT_ID=" + id), 5000);
-        }
-        else {
+        } else {
             try {
-                doc = Jsoup.parse(new URL(String.format(urlForArticle, nonStandardCategories.contains(faculty)?faculty:faculty_header+faculty, id)), 5000);
-            } catch (HttpStatusException e){
+                doc = Jsoup.parse(new URL(String.format(urlForArticle, nonStandardCategories.contains(faculty) ? faculty : faculty_header + faculty, id)), 5000);
+            } catch (HttpStatusException e) {
                 FullArticle err = new FullArticle();
                 err.setTitle("Article not found");
                 return err;
@@ -72,7 +72,7 @@ public class GetNewsService {
         }
         try {
             return parseArticlePage(Objects.requireNonNull(doc.getElementsByClass(/*"col-md-9 md-padding main-content"*/"mb-3").first()), id);
-        } catch (Exception e){
+        } catch (Exception e) {
             FullArticle err = new FullArticle();
             err.setTitle("Article not found");
             return err;
@@ -80,7 +80,7 @@ public class GetNewsService {
     }
 
     public NewsResponse getAgpuNews(int page) throws IOException {
-        Document doc = Jsoup.parse(new URL(urlAgpuNews+"?PAGEN_1="+page), 5000);
+        Document doc = Jsoup.parse(new URL(urlAgpuNews + "?PAGEN_1=" + page), 5000);
         List<PreviewArticle> res = new ArrayList<>();
         return getNewsResponse(page, doc, res);
     }
@@ -93,11 +93,11 @@ public class GetNewsService {
         result.setArticles(res);
         Elements elsA = doc.getElementsByTag("a");
         List<Element> els = new ArrayList<>();
-        for(Element el: elsA){
-            if(el.text().equals("Конец"))
+        for (Element el : elsA) {
+            if (el.text().equals("Конец"))
                 els.add(el);
         }
-        if(els.isEmpty())
+        if (els.isEmpty())
             result.setCountPages(1);
         else {
             result.setCountPages(
@@ -108,18 +108,18 @@ public class GetNewsService {
                     )
             );
         }
-        for(Element el: doc.getElementsByTag("font")){
-            if(el.text().contains("След. | Конец")) {
-                if(els.isEmpty())
+        for (Element el : doc.getElementsByTag("font")) {
+            if (el.text().contains("След. | Конец")) {
+                if (els.isEmpty())
                     result.setCountPages(page);
             }
         }
-        if(result.getCurrentPage() > result.getCountPages())
+        if (result.getCurrentPage() > result.getCountPages())
             result.setCurrentPage(1);
         return result;
     }
 
-    private FullArticle parseArticlePage(Element element, int id){
+    private FullArticle parseArticlePage(Element element, int id) {
         Element el = element.getElementsByClass("news-detail-body").first();
         FullArticle res = new FullArticle();
         assert el != null;
@@ -134,14 +134,34 @@ public class GetNewsService {
         );
 
         res.setId(id);
-        StringBuilder description = new StringBuilder();
-        for(Element p: el.getElementsByAttributeValue("style", "text-align: justify;"))
-            description.append(p.text()).append("\n");
-        res.setDescription(description.toString());
+        Element newsDetailsContent = element.getElementsByClass("news-detail-content").first();
+        res.setDescription(recursiveParseText(newsDetailsContent));
 
-        for(Element img: el.getElementsByTag("img"))
-            res.getImages().add("http://www.agpu.net"+img.attr("src"));
+        for (Element img : el.getElementsByTag("img"))
+            res.getImages().add("http://www.agpu.net" + img.attr("src"));
         return res;
+    }
+
+    private String recursiveParseText(Element el) {
+        if (
+                el
+                        .children()
+                        .stream()
+                        .filter(
+                                element -> !element
+                                        .tag()
+                                        .equals(Tag.valueOf("br"))
+                        )
+                        .toList()
+                        .isEmpty()
+        )
+            return el.text();
+        var res = new StringBuilder();
+        for (Element child : el.children()) {
+            res.append(recursiveParseText(child)).append("\n");
+        }
+        return res.toString();
+
     }
 
     private PreviewArticle parsePreviewArticleElement(Element el) {
@@ -162,7 +182,7 @@ public class GetNewsService {
                         .text()
         );
 
-        if(!el.getElementsByAttributeValue("style", "text-align: justify;").isEmpty())
+        if (!el.getElementsByAttributeValue("style", "text-align: justify;").isEmpty())
             res.setDescription(
                     el.getElementsByAttributeValue("style", "text-align: justify;")
                             .first()
