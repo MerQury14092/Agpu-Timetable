@@ -13,10 +13,13 @@ import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 import static com.merqury.agpu.general.AgpuConstants.hostSite;
 
@@ -24,7 +27,7 @@ import static com.merqury.agpu.general.AgpuConstants.hostSite;
 @Log4j2
 public class GetNewsService {
     private static final String faculty_header = "faculties-institutes/";
-    private static final String urlForEverything = hostSite + "/struktura-vuza/%s/news/news.php?4PAGEN_1=%d";
+    private static final String urlForEverything = hostSite + "/struktura-vuza/%s/news/news.php?PAGEN_1=%d";
     private static final String urlForArticle = hostSite + "/struktura-vuza/%s/news/news.php?ELEMENT_ID=%d";
     private final static String urlAgpuNews = "http://agpu.net/news.php";
     private final static List<String> nonStandardCategories;
@@ -100,13 +103,16 @@ public class GetNewsService {
         if (els.isEmpty())
             result.setCountPages(1);
         else {
-            result.setCountPages(
-                    Integer.parseInt(
-                            els.get(0)
-                                    .attr("href")
-                                    .split("PAGEN_1=")[1]
-                    )
-            );
+            URL uriToEnd;
+            try {
+                 uriToEnd = new URL("http://n/"+els.get(0)
+                        .attr("href"));
+            } catch (MalformedURLException e) {
+                throw new RuntimeException(e);
+            }
+            var queryParams = splitQuery(uriToEnd);
+
+            result.setCountPages(Integer.parseInt(queryParams.get("PAGEN_1")));
         }
         for (Element el : doc.getElementsByTag("font")) {
             if (el.text().contains("След. | Конец")) {
@@ -116,7 +122,27 @@ public class GetNewsService {
         }
         if (result.getCurrentPage() > result.getCountPages())
             result.setCurrentPage(1);
+
         return result;
+    }
+
+    public static Map<String, String> splitQuery(URL url) {
+        Map<String, String> query_pairs = new LinkedHashMap<String, String>();
+        String query = url.getQuery();
+        String[] pairs = query.split("&");
+        for (String pair : pairs) {
+            int idx = pair.indexOf("=");
+            query_pairs.put(
+                    URLDecoder.decode(
+                            pair.substring(0, idx),
+                            StandardCharsets.UTF_8),
+                    URLDecoder.decode(
+                            pair.substring(idx + 1),
+                            StandardCharsets.UTF_8
+                    )
+            );
+        }
+        return query_pairs;
     }
 
     private FullArticle parseArticlePage(Element element, int id) {
@@ -158,7 +184,7 @@ public class GetNewsService {
             return el.text();
         var res = new StringBuilder();
         for (Element child : el.children()) {
-            res.append(recursiveParseText(child)).append("\n");
+            res.append(recursiveParseText(child));
         }
         return res.toString();
 
