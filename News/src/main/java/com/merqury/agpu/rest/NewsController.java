@@ -4,13 +4,11 @@ import com.merqury.agpu.DTO.FullArticle;
 import com.merqury.agpu.DTO.NewsResponse;
 import com.merqury.agpu.service.GetNewsService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.jsoup.internal.StringUtil;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 
@@ -22,7 +20,7 @@ public class NewsController {
     private final GetNewsService service;
 
     @GetMapping
-    public NewsResponse getGeneralNews(HttpServletRequest request) throws IOException {
+    public NewsResponse getGeneralNews(HttpServletRequest request, HttpServletResponse response) throws IOException {
         int page = 1;
         if(request.getParameter("page") != null) {
             String pageStr = request.getParameter("page");
@@ -35,7 +33,7 @@ public class NewsController {
 
     @GetMapping("/")
     public NewsResponse getGeneralNewsDupl(HttpServletRequest request) throws IOException {
-        return getGeneralNews(request);
+        return getGeneralNews(request, null);
     }
 
     @GetMapping("/{faculty}")
