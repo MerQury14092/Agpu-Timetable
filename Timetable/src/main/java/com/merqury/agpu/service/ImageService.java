@@ -1,32 +1,43 @@
 package com.merqury.agpu.service;
 
 
-import com.merqury.agpu.DTO.TimetableDay;
 import com.merqury.agpu.DTO.Discipline;
+import com.merqury.agpu.DTO.ImageUrl;
+import com.merqury.agpu.DTO.TimetableDay;
 import com.merqury.agpu.enums.DisciplineType;
+import com.merqury.agpu.memory.ImageUrlMemory;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.FileAttribute;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @Log4j2
 public class ImageService {
     private Font font, defaultFont;
+    private final ImageUrlMemory memory;
+    private final Environment environment;
 
-    public ImageService() throws IOException, FontFormatException {
+    public ImageService(ImageUrlMemory memory, Environment environment) throws IOException, FontFormatException {
+        this.memory = memory;
+        this.environment = environment;
         this.font = Font.createFont(Font.TRUETYPE_FONT, ImageService.class.getResourceAsStream("/fonts/jetbrains-mono(bold).ttf")).deriveFont(Font.BOLD, 16f);
         this.defaultFont = this.font;
     }
@@ -85,6 +96,39 @@ public class ImageService {
         }
 
         return res;
+    }
+
+    public ImageUrl saveImageAngGetUrl(BufferedImage image) throws IOException {
+        Path imageStorageDir;
+        if(System.getenv("SAVE_PATH") == null)
+            imageStorageDir = Path.of("/var/timetable-service/images");
+        else
+            imageStorageDir = Path.of(System.getenv("SAVE_PATH"));
+        if(Files.notExists(imageStorageDir)) {
+            try {
+                Files.createDirectory(Path.of("/var"));
+                Files.createDirectory(Path.of("/var/timetable-service"));
+                Files.createDirectory(imageStorageDir);
+            }
+            catch (FileAlreadyExistsException ignored) {}
+            catch (IOException e) {
+                throw new Error(e);
+            }
+        }
+        Path savePath = Path.of(imageStorageDir.toString(), Objects.toString(image.hashCode()+new Random().nextInt())+".png");
+        while (Files.exists(savePath))
+            savePath = Path.of(imageStorageDir.toString(), Objects.toString(image.hashCode()+new Random().nextInt())+".png");
+
+        Files.createFile(savePath);
+
+        try (var saveOutputStream = new FileOutputStream(savePath.toFile())){
+            ImageIO.write(image, "PNG", saveOutputStream);
+        } catch (IOException e){
+            throw new RuntimeException(e);
+        }
+        String url = Objects.toString(image.hashCode()+new Random().nextInt());
+        memory.addUrl(url, savePath);
+        return new ImageUrl("/api/"+ environment.getProperty("api.version") +"/timetable/images/"+url, Files.size(savePath));
     }
 
     public BufferedImage getImageByTimetableOf6DaysVertical(TimetableDay[] timetableDays, int cellWidth, boolean full, Map<DisciplineType, String> types, Map<DisciplineType, String> colors){

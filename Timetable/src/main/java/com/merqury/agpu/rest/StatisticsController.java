@@ -13,7 +13,7 @@ import java.util.List;
 public class StatisticsController {
     private final StatMemory memory;
 
-    @GetMapping("/api/stats")
+    @GetMapping("/api/${api.version}/stats")
     public List<Statistics> getStats(){
         return memory.getStatistics();
     }

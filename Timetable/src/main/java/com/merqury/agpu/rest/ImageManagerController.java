@@ -1,9 +1,10 @@
 package com.merqury.agpu.rest;
 
-import com.merqury.agpu.general.Controllers;
-import com.merqury.agpu.DTO.TimetableDay;
 import com.merqury.agpu.DTO.Discipline;
+import com.merqury.agpu.DTO.ImageUrl;
+import com.merqury.agpu.DTO.TimetableDay;
 import com.merqury.agpu.enums.DisciplineType;
+import com.merqury.agpu.general.Controllers;
 import com.merqury.agpu.service.ImageService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -13,9 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -26,7 +25,7 @@ import java.util.regex.Pattern;
 
 
 @RestController
-@RequestMapping("/api/timetable/image")
+@RequestMapping("/api/${api.version}/timetable/image")
 public class ImageManagerController {
     private final ImageService service;
 
@@ -34,8 +33,8 @@ public class ImageManagerController {
         this.service = service;
     }
 
-    @PostMapping(value = "/discipline", produces = MediaType.IMAGE_PNG_VALUE)
-    public byte[] discipline(
+    @PostMapping(value = "/discipline")
+    public ImageUrl discipline(
             @RequestBody Discipline[] disc,
             HttpServletResponse response,
             HttpServletRequest request
@@ -47,22 +46,18 @@ public class ImageManagerController {
             cellWidth = Integer.parseInt(request.getParameter("cell_width"));
         if(disc.length == 2) {
             BufferedImage res = service.getImageByTimetableOfSubDiscipline(disc[0], disc[1], cellWidth, types, colors);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(res, "PNG", baos);
-            return baos.toByteArray();
+            return service.saveImageAngGetUrl(res);
         }
         else if(disc.length == 1) {
             BufferedImage res = service.getImageByTimetableOfDiscipline(disc[0], cellWidth, types, colors);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(res, "PNG", baos);
-            return baos.toByteArray();
+            return service.saveImageAngGetUrl(res);
         }
         response.sendError(400);
         return null;
     }
 
-    @PostMapping(value = "/day", produces = MediaType.IMAGE_PNG_VALUE)
-    public byte[] day(
+    @PostMapping(value = "/day")
+    public ImageUrl day(
             @RequestBody TimetableDay timetableDay,
             HttpServletResponse response,
             HttpServletRequest request
@@ -77,19 +72,14 @@ public class ImageManagerController {
             cellWidth = Integer.parseInt(request.getParameter("cell_width"));
         if(request.getParameter("vertical") == null) {
             BufferedImage res = service.getImageByTimetableOfDayHorizontal(timetableDay, cellWidth, false, types, colors);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(res, "PNG", baos);
-            return baos.toByteArray();
+            return service.saveImageAngGetUrl(res);
         }
         BufferedImage res = service.getImageByTimetableOfDayVertical(timetableDay, cellWidth, false, types, colors);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ImageIO.write(res, "PNG", baos);
-        service.resetFont();
-        return baos.toByteArray();
+        return service.saveImageAngGetUrl(res);
     }
 
-    @PostMapping(value = "/6days", produces = MediaType.IMAGE_PNG_VALUE)
-    public byte[] days(
+    @PostMapping(value = "/6days")
+    public ImageUrl days(
             @RequestBody TimetableDay[] timetableDays,
             HttpServletResponse response,
             HttpServletRequest request
@@ -125,18 +115,12 @@ public class ImageManagerController {
             cellWidth = Integer.parseInt(request.getParameter("cell_width"));
         if(request.getParameter("vertical") != null){
             BufferedImage res = service.getImageByTimetableOf6DaysVertical(timetableDays, cellWidth, false, types, colors);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(res, "PNG", baos);
-            service.resetFont();
-            return baos.toByteArray();
+            return service.saveImageAngGetUrl(res);
         }
 
         if(request.getParameter("vertical") == null) {
             BufferedImage res = service.getImageByTimetableOf6DaysHorizontal(timetableDays, cellWidth, false, types, colors);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(res, "PNG", baos);
-            service.resetFont();
-            return baos.toByteArray();
+            return service.saveImageAngGetUrl(res);
         }
         return null;
     }

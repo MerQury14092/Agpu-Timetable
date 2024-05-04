@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 
 @RestController
 @AllArgsConstructor
-@RequestMapping("/api/timetable")
+@RequestMapping("/api/{api.version}/timetable")
 public class TimetableController {
     private final GetTimetableService service;
     private final GetSearchIdService searchIdService;

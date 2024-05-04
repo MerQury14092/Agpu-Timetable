@@ -23,7 +23,7 @@ import java.security.MessageDigest;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/timetable/changes")
+@RequestMapping("/api/${api.version}/timetable/changes")
 public class TimetableChangesController {
     private final GetSearchIdService getSearchIdService;
     private final TimetableChangesPublisher changesPublisher;
