@@ -59,7 +59,7 @@ public class TimetableController {
             return null;
         }
         TimetableDay res = (
-                service.getTimetableDayFromMemoryOrSiteAndCacheIfNeedIt(request.getParameter("id") == null ?
+                service.getTimetableDayFromSite(request.getParameter("id") == null ?
                         request.getParameter("groupId") :
                         request.getParameter("id"), date, owner)
         ).deleteHolidays();

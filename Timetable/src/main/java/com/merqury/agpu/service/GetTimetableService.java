@@ -47,7 +47,7 @@ public class GetTimetableService {
     ) throws IOException {
         List<TimetableDay> result = new ArrayList<>();
         for(String date: getDatesBetween(startDate, endDate))
-            result.add(getTimetableDayFromMemoryOrSiteAndCacheIfNeedIt(id, date, owner));
+            result.add(getTimetableDayFromSite(id, date, owner));
         return result;
     }
 
